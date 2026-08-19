@@ -273,6 +273,11 @@
         iob = hru(j)%obj_no
         iwst = ob(iob)%wst
         pet_day = wst(iwst)%weat%pet
+
+       case (4)  !! SIMPLE TEMPERATURE-BASED PET DEMONSTRATION
+
+        !! PET [mm d-1] = 10 * daily mean air temperature [deg C]
+        pet_day = Max(0., 10. * w%tave)
   
       end select
 

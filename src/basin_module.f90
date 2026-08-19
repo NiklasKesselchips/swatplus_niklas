@@ -20,6 +20,7 @@
                                  !!   1 = Penman-Monteith
                                  !!   2 = Hargreaves method
                                  !!   3 = read in daily pot ET values
+                                 !!   4 = simple temperature PET demonstration
         integer :: event = 0     !! event code
         integer :: crk = 0       !! crack flow code 
                                  !!   1 = compute flow in cracks
