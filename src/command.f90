@@ -21,6 +21,7 @@
       use organic_mineral_mass_module
       use constituent_mass_module
       use hru_module, only : ihru, hru
+      use soil_module, only : soil
       use basin_module
       use maximum_data_module
       use output_landscape_module, only : hnb_d
@@ -52,6 +53,11 @@
       integer dum,i_count                    !rtb gwflow
       integer :: i_mfl,i_chan,i_hyd,chan_num !rtb gwflow; counter
       real :: sumflo
+      integer :: ly
+      real :: layer_top_mm
+      real :: theta_v
+      integer, save :: soil_layer_unit = -1
+      logical, save :: soil_layer_output_initialized = .false.
 
       icmd = sp_ob1%objs
       do while (icmd /= 0)
@@ -391,6 +397,41 @@
         
       end do
       
+      !! Daily layer-resolved soil moisture output after all objects
+      !! have been routed, including reservoir-to-HRU seepage.
+      if (.not. soil_layer_output_initialized) then
+        open(newunit=soil_layer_unit, &
+             file='soil_moisture_layer_day.txt', &
+             status='replace', action='write')
+        write(soil_layer_unit,'(a)') &
+          'jday mon day yr hru layer top_mm bottom_mm thick_mm st_mm theta_v'
+        soil_layer_output_initialized = .true.
+      end if
+
+      do j = 1, sp_ob%hru
+        layer_top_mm = 0.
+
+        do ly = 1, soil(j)%nly
+
+          if (soil(j)%phys(ly)%thick > 1.e-12) then
+            theta_v = soil(j)%phys(ly)%wp + &
+                      soil(j)%phys(ly)%st / soil(j)%phys(ly)%thick
+          else
+            theta_v = soil(j)%phys(ly)%wp
+          end if
+
+          theta_v = max(0., min(soil(j)%phys(ly)%por, theta_v))
+
+          write(soil_layer_unit,*) &
+            time%day, time%mo, time%day_mo, time%yrc, &
+            j, ly, layer_top_mm, soil(j)%phys(ly)%d, &
+            soil(j)%phys(ly)%thick, soil(j)%phys(ly)%st, theta_v
+
+          layer_top_mm = soil(j)%phys(ly)%d
+
+        end do
+      end do
+
       !! set demand requirements for water rights objects
       !! call water_demand
       do iwro =1, db_mx%wro_db
