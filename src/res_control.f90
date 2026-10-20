@@ -11,7 +11,8 @@
       use reservoir_seepage_module, only : &
         store_reservoir_seepage_in_hru, &
         contacted_soil_saturation, &
-        soil_moisture_seepage_factor
+        soil_moisture_seepage_factor, &
+        set_reservoir_backwater_level
       
       implicit none
 
@@ -195,6 +196,13 @@
 
         total_contact_length_m = 0.
         do ireceiver = 1, res_ob(jres)%n_seep_hru
+
+          ihru = res_ob(jres)%seep_hru(ireceiver)%hru_id
+
+          !! Store current reservoir geometry for this mapped HRU.
+          call set_reservoir_backwater_level(ihru, &
+            water_surface_depth_mm, reservoir_bottom_depth_mm)
+
           total_contact_length_m = total_contact_length_m + &
             res_ob(jres)%seep_hru(ireceiver)%contact_length_m
         end do

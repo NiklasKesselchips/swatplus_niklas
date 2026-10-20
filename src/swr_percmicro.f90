@@ -34,6 +34,7 @@
       use septic_data_module
       use hru_module, only : hru, ihru, bz_perc, i_sep, isep, latlyr, lyrtile, sepday, sw_excess
       use soil_module
+      use reservoir_seepage_module, only : reservoir_latq_backwater_factor
       
       implicit none
       
@@ -46,6 +47,7 @@
       real :: ratio                   !none          |ratio of seepage to (latq + sepday)
       real :: sol_k_sep               !              |
       real :: adj_lin                 !              |
+      real :: backwater_factor        !none          |reservoir backwater factor
 
       j = ihru
 
@@ -114,6 +116,15 @@
       if (sepday + lyrtile > sw_excess) then
         sepday = sw_excess - lyrtile
       endif
+
+
+      !! Reservoir backwater constraint.
+      !! Reduce lateral drainage according to the fraction of
+      !! the soil layer intersected by the reservoir water column.
+      !! The blocked water remains in the soil layer because
+      !! latlyr is reduced before swr_percmain subtracts it.
+      backwater_factor = reservoir_latq_backwater_factor(j, ly1)
+      latlyr = latlyr * backwater_factor
 
       return
       end subroutine swr_percmicro

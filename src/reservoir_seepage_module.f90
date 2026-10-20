@@ -14,7 +14,96 @@
       real :: horton_kprime = 4.0
       logical :: horton_parameters_loaded = .false.
 
+
+        !! Reservoir backwater state for mapped receiving HRUs.
+        !! Updated during reservoir routing and used during subsequent
+        !! HRU soil-water routing.
+        real, dimension(:), allocatable, save :: hru_res_water_surface_mm
+        real, dimension(:), allocatable, save :: hru_res_bottom_depth_mm
+
       contains
+
+        subroutine set_reservoir_backwater_level(ihru, &
+          water_surface_depth_mm, reservoir_bottom_depth_mm)
+
+        integer, intent(in) :: ihru
+        real, intent(in) :: water_surface_depth_mm
+        real, intent(in) :: reservoir_bottom_depth_mm
+        integer :: nhru
+
+        if (.not. allocated(hru)) return
+
+        nhru = size(hru)
+
+        if (nhru <= 0) return
+        if (ihru < 1 .or. ihru > nhru) return
+
+        if (.not. allocated(hru_res_water_surface_mm)) then
+
+          allocate(hru_res_water_surface_mm(nhru))
+          allocate(hru_res_bottom_depth_mm(nhru))
+
+          !! Default: no reservoir backwater effect.
+          hru_res_water_surface_mm = 0.
+          hru_res_bottom_depth_mm = 0.
+
+        end if
+
+        hru_res_water_surface_mm(ihru) = max(0., water_surface_depth_mm)
+        hru_res_bottom_depth_mm(ihru) = max(0., reservoir_bottom_depth_mm)
+
+        end subroutine set_reservoir_backwater_level
+
+
+        real function reservoir_latq_backwater_factor(ihru, ly) result(factor)
+
+        integer, intent(in) :: ihru
+        integer, intent(in) :: ly
+
+        real :: layer_top_mm
+        real :: layer_bottom_mm
+        real :: water_surface_depth_mm
+        real :: reservoir_bottom_depth_mm
+        real :: contacted_thickness_mm
+
+        factor = 1.
+
+        if (.not. allocated(soil)) return
+        if (.not. allocated(hru_res_water_surface_mm)) return
+        if (.not. allocated(hru_res_bottom_depth_mm)) return
+
+        if (ihru < 1 .or. ihru > size(soil)) return
+        if (ihru > size(hru_res_water_surface_mm)) return
+        if (.not. allocated(soil(ihru)%phys)) return
+        if (ly < 1 .or. ly > soil(ihru)%nly) return
+
+        water_surface_depth_mm = hru_res_water_surface_mm(ihru)
+        reservoir_bottom_depth_mm = hru_res_bottom_depth_mm(ihru)
+
+        !! No wetted reservoir interval -> no backwater effect.
+        if (reservoir_bottom_depth_mm <= water_surface_depth_mm) return
+        if (reservoir_bottom_depth_mm <= 0.) return
+
+        if (soil(ihru)%phys(ly)%thick <= 0.) return
+
+        layer_bottom_mm = soil(ihru)%phys(ly)%d
+        layer_top_mm = layer_bottom_mm - soil(ihru)%phys(ly)%thick
+
+        !! Same vertical overlap definition used for reservoir seepage.
+        contacted_thickness_mm = max(0., &
+          min(layer_bottom_mm, reservoir_bottom_depth_mm) - &
+          max(layer_top_mm, water_surface_depth_mm))
+
+        contacted_thickness_mm = min(contacted_thickness_mm, &
+          soil(ihru)%phys(ly)%thick)
+
+        factor = 1. - contacted_thickness_mm / &
+          soil(ihru)%phys(ly)%thick
+
+        factor = max(0., min(1., factor))
+
+        end function reservoir_latq_backwater_factor
+
 
       subroutine read_horton_parameters()
 
