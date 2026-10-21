@@ -236,7 +236,7 @@
             !  iru = ob(icmd)%ru(1)  !can only be in one subbasin if routing over
             !  conv = 100. * ru(iru)%da_km2  !* ru_elem(ielem)%frac
             !else
-              conv = 10. * ob(icmd)%area_ha      ! m3/10*ha = mm
+              conv = ob(icmd)%area_ha      ! // converts m3 to mm using 10 * area_ha
             !end if
             ob(icmd)%hin_sur = ob(icmd)%hin_sur // conv
             ob(icmd)%hin_lat = ob(icmd)%hin_lat // conv
