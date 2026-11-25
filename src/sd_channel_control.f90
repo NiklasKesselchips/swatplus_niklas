@@ -102,6 +102,7 @@
       
       ich = isdch
       isd_db = sd_dat(ich)%hyd
+      channel_storage = max(0., ch_stor(ich)%flo)
       iwst = ob(icmd)%wst
       erode_btm = 0.
       erode_bank = 0.
@@ -164,6 +165,7 @@
       
       !! set outgoing flow and sediment - ht2
       ht2 = hz
+      rttime = max(0., sd_ch(ich)%chl) * 1000. / (3600. * 0.001)
       peakrate = 0.
       hyd_rad = 0.
       timeint = 0.
@@ -485,6 +487,8 @@
       end if
       
       end if    ! peakrate > 0
+      ! Include previous channel storage before losses and routing
+      ht2%flo = ht2%flo + channel_storage
       
       !! compute water balance - precip, evap and seep
       !! km * m * 1000 m/km * ha/10000 m2 = ha
@@ -499,7 +503,7 @@
       
       !! subtract seepage
       if (ht2%flo < 10000. * ch_wat_d(ich)%seep) then
-        ch_wat_d(ich)%seep = ht2%flo * 10000.      !m3 -> ha-m
+        ch_wat_d(ich)%seep = ht2%flo / 10000.      !m3 -> ha-m
         ht2%flo = 0.
       else
         ht2%flo = ht2%flo - 10000. * ch_wat_d(ich)%seep
@@ -507,7 +511,7 @@
       
       !! subtract evaporation
       if (ht2%flo < 10000. * ch_wat_d(ich)%evap) then
-        ch_wat_d(ich)%evap = ht2%flo * 10000.      !m3 -> ha-m
+        ch_wat_d(ich)%evap = ht2%flo / 10000.      !m3 -> ha-m
         ht2%flo = 0.
       else
         ht2%flo = ht2%flo - 10000. * ch_wat_d(ich)%evap
